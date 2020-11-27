@@ -17,4 +17,7 @@ class Stock:
         self.df = helper.get_historical_data(self.ticker, start, end)
         self.df['daily_return'] = np.log(self.df['Adj Close'].pct_change() + 1)
 
+    def get_prices(self):
+        return self.df['Adj Close']
+
     # TODO: add other methods if necessary

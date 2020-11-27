@@ -10,7 +10,6 @@ def get_historical_data(ticker, start, end=None):
     """
     try:
         df = data.DataReader(ticker, start=start, end=end, data_source='yahoo')
-        raise Exception("Failed to collect data for {}".format(ticker))
     except:
         raise Exception("Failed to collect data for {}".format(ticker))
     df = df[['Adj Close', 'Volume']]
