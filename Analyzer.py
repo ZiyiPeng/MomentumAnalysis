@@ -10,6 +10,7 @@ class Analyzer:
         :param end: end date of the historical data
         """
         self.stocks = {t:Stock(t) for t in tickers}
+        self.start = start
         with concurrent.futures.ThreadPoolExecutor(os.cpu_count()+1) as executor:
             executor.map(lambda s: self.stocks[s].populate_df(start, end), self.stocks.keys())
         executor.shutdown(wait=True)
@@ -24,6 +25,7 @@ class Analyzer:
         :param ranking_period: length of ranking period (int)
         :param n: number of winners to pick (int)
         :param volume_filter: whether to apply volume filter on top of momentum indicator (bool)
+        :return a list of tickers str[]
         """
         pass
 
@@ -37,11 +39,15 @@ class Analyzer:
         :param ranking_period: length of ranking period (int)
         :param n: number of winners to pick (int)
         :param volume_filter: whether to apply volume filter on top of momentum indicator (bool)
+        :return a list of tickers str[]
         """
         pass
 
     def get_stock(self, ticker):
         return self.stocks[ticker]
+
+    def stock_price(self, ticker, date):
+        return self.stocks[ticker][date]
 
 
     # //TODO: add/implement other methods related to the analyzation part
