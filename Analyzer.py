@@ -45,7 +45,7 @@ class Analyzer:
         :param volume_filter: whether to apply volume filter on top of momentum indicator (bool)
         :return a list of tickers str[]
         """
-        winners = [None] * n
+        winners = []
         
         start = datetime.strptime(date, '%Y-%m-%d')
         
@@ -66,22 +66,34 @@ class Analyzer:
         #ordered = self.stocks.sort_values(by='Momentum', ascending=False)
         
         #pick top n
-        i = 0
         for (ticker, stock) in ordered:
-
-            if i < n and stock.momentum > 0:
-                winners[i] = ticker 
+            if len(winners) < n and stock.momentum > 0:
                 if volume_filter == True:
-                    prev = start - timedelta(days=1)
-                    prev_date = prev.strftime("%Y-%m-%d")
-                    while prev_date not in stock.df['Volume']:
-                        prev -= timedelta(days=1)
-                        prev_date = prev.strftime("%Y-%m-%d")
-                    average_volume = np.mean(stock.df['Volume'].loc[start_date:end_date].dropna())
-                    prev_volume = stock.df['Volume'][prev_date]
-                    if prev_volume < average_volume:
-                        winners[i] = None
-            i+=1
+                    prev_start = start - timedelta(days= n*4)
+                    prev_start_date = prev_start.strftime("%Y-%m-%d")
+                    while prev_start_date not in stock.df['Volume']:
+                        prev_start -= timedelta(days=1)
+                        prev_start_date = prev_start.strftime("%Y-%m-%d")
+                        
+                    prev_end = start - timedelta(days= n)
+                    prev_end_date = prev_end.strftime("%Y-%m-%d")
+                    while prev_end_date not in stock.df['Volume']:
+                        prev_end-= timedelta(days=1)
+                        prev_end_date = prev_end.strftime("%Y-%m-%d")
+                        
+                    #last_start = prev_end
+                    last_start_date = prev_end_date
+                    
+                    #last_end = start
+                    last_end_date = start_date
+                    
+                    prev_vol = np.mean(stock.df['Volume'].loc[prev_start_date:prev_end_date].dropna())
+                    last_vol = np.mean(stock.df['Volume'].loc[last_start_date:last_end_date].dropna())
+
+                    if last_vol > prev_vol:
+                        winners += [ticker]
+                else:
+                    winners += [ticker] 
         return winners
                 
 
@@ -97,7 +109,7 @@ class Analyzer:
         :param volume_filter: whether to apply volume filter on top of momentum indicator (bool)
         :return a list of tickers str[]
         """
-        losers = [None] * n
+        losers = []
         
         start = datetime.strptime(date, '%Y-%m-%d')
         
@@ -118,23 +130,35 @@ class Analyzer:
         #ordered = self.stocks.sort_values(by='Momentum', ascending=False)
         
         #pick top n
-        i = 0
         for (ticker, stock) in ordered:
-
-            if i < n and stock.momentum > 0:
-                losers[i] = ticker 
+            if len(losers) < n and stock.momentum < 0:
                 if volume_filter == True:
-                    prev = start - timedelta(days=1)
-                    prev_date = prev.strftime("%Y-%m-%d")
-                    while prev_date not in stock.df['Volume']:
-                        prev -= timedelta(days=1)
-                        prev_date = prev.strftime("%Y-%m-%d")
-                    average_volume = np.mean(stock.df['Volume'].loc[start_date:end_date].dropna())
-                    prev_volume = stock.df['Volume'][prev_date]
-                    if prev_volume > average_volume:
-                        losers[i] = None
-            i+=1
-        return losers 
+                    prev_start = start - timedelta(days= n*4)
+                    prev_start_date = prev_start.strftime("%Y-%m-%d")
+                    while prev_start_date not in stock.df['Volume']:
+                        prev_start -= timedelta(days=1)
+                        prev_start_date = prev_start.strftime("%Y-%m-%d")
+                        
+                    prev_end = start - timedelta(days= n)
+                    prev_end_date = prev_end.strftime("%Y-%m-%d")
+                    while prev_end_date not in stock.df['Volume']:
+                        prev_end-= timedelta(days=1)
+                        prev_end_date = prev_end.strftime("%Y-%m-%d")
+                        
+                    #last_start = prev_end
+                    last_start_date = prev_end_date
+                    
+                    #last_end = start
+                    last_end_date = start_date
+                    
+                    prev_vol = np.mean(stock.df['Volume'].loc[prev_start_date:prev_end_date].dropna())
+                    last_vol = np.mean(stock.df['Volume'].loc[last_start_date:last_end_date].dropna())
+
+                    if last_vol > prev_vol:
+                        losers += [ticker]
+                else:
+                    losers += [ticker] 
+        return losers
 
     def get_stock(self, ticker):
         return self.stocks[ticker]
@@ -158,6 +182,6 @@ if __name__ == "__main__" :
      f = b.winners("2019-06-01", 20, 5)
      print(e, f)
      
-     g = b.losers("2019-06-01", 20, 5)
-     h = b.losers("2019-06-01", 20, 5, True)
+     g = b.losers("2019-06-01", 20, 5, True)
+     h = b.losers("2019-06-01", 20, 5)
      print(g, h)
