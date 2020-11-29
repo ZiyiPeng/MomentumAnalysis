@@ -47,7 +47,7 @@ class Analyzer:
         return self.stocks[ticker]
 
     def stock_price(self, ticker, date):
-        return self.stocks[ticker][date]
+        return self.stocks[ticker].df['Adj Close'][date]
 
 
     # //TODO: add/implement other methods related to the analyzation part

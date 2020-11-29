@@ -46,6 +46,10 @@ class TradingStrategy:
     def apply(self, start_date):
         pass
 
+    # return the portfolio's value on date (exclude cash)
+    def portfolio_value(self, date):
+        return self.df['value'][date]
+
     # fill out path of this portfolio's historical value, store it as a column in self.df
     # after this method is called, self.df should contain 2 columns 'value' & 'daily_return'
     def backtrace(self):
