@@ -6,7 +6,6 @@ class Stock:
     def __init__(self, ticker):
         self.ticker = ticker
         self.df = None
-        self.momentum = None
 
     # collect historical data for this stock and initialize df
     # df contains 3 columns, 'Adj Close','Volume','daily_return'
