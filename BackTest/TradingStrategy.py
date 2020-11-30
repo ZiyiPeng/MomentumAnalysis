@@ -1,4 +1,3 @@
-from datetime import timedelta
 
 import pandas as pd
 from itertools import accumulate
@@ -33,13 +32,14 @@ class TradingStrategy:
         :param is_long: whether to long this stock or short it (bool)
         :return: a dict which contains trading records and change in purchasing capacity when the position is closed
         """
-        end_date = date + timedelta(days=self.period)
+        end_date_idx = self.df.index.get_loc(date) + self.period
+        end_date = self.df.index[end_date_idx]
         enter_price = self.analyzer.stock_price(ticker, date)
         exit_price = self.analyzer.stock_price(ticker, end_date)
         position = total_value / enter_price if is_long else -total_value / enter_price
         record1 = TradingRecord(ticker, position, date, enter_price)
         record2 = TradingRecord(ticker, -position, end_date, exit_price)
-        capacity_delta = (enter_price - exit_price) * position
+        capacity_delta = (exit_price - enter_price) * position
         return {'records': [record1, record2], 'capacity_delta': capacity_delta}
 
     # apply this trading strategy and fill out trading_records

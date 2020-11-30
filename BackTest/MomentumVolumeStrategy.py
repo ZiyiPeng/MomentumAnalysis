@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from BackTest.TradingStrategy import TradingStrategy
 
 class MomentumVolumeStrategy(TradingStrategy):
@@ -26,4 +26,5 @@ class MomentumVolumeStrategy(TradingStrategy):
                 capacity_delta += record_cap_delta['capacity_delta']
             # recalculate purchasing power
             capacity += capacity_delta
-            current_date += timedelta(days=self.period)
+            idx = self.df.index.get_loc(current_date) + self.period
+            current_date = self.df.index[idx]
