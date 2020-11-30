@@ -5,6 +5,7 @@ from Stock import Stock
 from scipy.stats import linregress
 from datetime import datetime, timedelta
 import numpy as np
+import pandas as pd
 
 class Analyzer:
     def __init__(self, tickers, start, end=None):
@@ -164,6 +165,7 @@ class Analyzer:
         return self.stocks[ticker]
 
     def stock_price(self, ticker, date):
+        if ticker == 'cash': return 1
         return self.stocks[ticker].df['Adj Close'][date]
 
 
