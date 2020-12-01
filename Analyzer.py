@@ -194,6 +194,34 @@ class Analyzer:
 
     # //TODO: add/implement other methods related to the analyzation part
     
+    '''
+    #test if selected stocks have higher/lower returns than the population
+    #look ahead at the holding period returns
+    #assume that momentums have already been calculted
+    #Null: spy mean and the test_stocks mean are the same
+    #Alt: the means are different (p value < 0.05)
+    def t_test_momentum(self, tickers, test_stocks):
+        """
+        :param date: (str)
+        :param tickers: a list of tickers (str[])
+        :param test_stocks: list of stocks that we want to test if significant
+        :return p-value (float)
+        """
+        total_momentum = []
+        test_momentum = []
+        for s in tickers:
+            total_momentum += [self.stocks[s].momentum]
+            if s in test_stocks:
+                test_momentum += [self.stocks[s].momentum]
+            
+        pop_mean_momentum = self.stocks['SPY'].momentum
+    
+        (_, p_value) = stats.ttest_1samp(a=test_momentum, popmean=pop_mean_momentum)
+
+        return p_value
+    '''
+    
+    
     #test if selected stocks have higher/lower returns than SPY
     #look ahead at the holding period returns
     #assume that momentums have already been calculted
@@ -239,11 +267,24 @@ class Analyzer:
 
         return p_value
     
-    #X = sm.add_constant(prev)
-    #model = sm.OLS(cur, X)
-    #modeli = model.fit()
-    #print(results.t_test([1, 0]))
-    #summary = modeli.summary()
+    def plot_holding(self, date, test_hold, test_stocks):
+        p_values = []
+        hold = []
+        for i in range(1, test_hold):
+            try:
+                p_value = self.t_test(date, i, test_stocks)
+                hold += [i]
+                p_values += [p_value]
+            except AssertionError:
+                pass 
+        plt.plot(hold, p_values)
+        plt.hlines(0.05, 0, test_hold, color = 'red', label = 'p-value = 0.05')
+        plt.legend()
+        plt.title("Number of Holding days vs p_values")
+        plt.xlabel("Holding days")
+        plt.ylabel("p_value")
+        plt.show()
+        
 
 if __name__ == "__main__" : 
      tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'SPY']
@@ -261,4 +302,11 @@ if __name__ == "__main__" :
      h = b.losers("2019-06-01", 20, 5)
      print(g, h)
      
+     #length of holding period = ranking period
+     #test seleted stock momentums
+     #print(b.t_test_momentum(tickers, d))
+     
+     #test holding period returns
      print(b.t_test("2019-06-01", 20, d))
+     
+     b.plot_holding("2019-06-01", 120, d)
