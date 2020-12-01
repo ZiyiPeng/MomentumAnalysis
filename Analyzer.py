@@ -3,9 +3,10 @@ import os
 
 from Stock import Stock
 from scipy.stats import linregress
+import scipy.stats as stats
 from datetime import datetime, timedelta
 import numpy as np
-import pandas as pd
+import matplotlib.pyplot as plt
 
 class Analyzer:
     def __init__(self, tickers, start, end=None):
@@ -32,6 +33,7 @@ class Analyzer:
         x = np.arange(len(returns))
         slope, _, rvalue, _, _ = linregress(x, returns)
         momentum = ((1 + slope) ** 252) * (rvalue ** 2) # annualize slope and multiply by R^2
+        #print(momentum)
         return  momentum
     
     # //TODO:
@@ -60,13 +62,21 @@ class Analyzer:
 
         #rank stocks based on momentum
         for s in self.stocks:
-            for i in range(n):
+            for i in range(ranking_period):
                 if start_date in self.stocks[s].df['daily_return']:
                     break
                 else:
                     start -= timedelta(days=1)
                     start_date = start.strftime("%Y-%m-%d")
+            for i in range(ranking_period):
+                if end_date in self.stocks[s].df['daily_return']:
+                    break
+                else:
+                    end -= timedelta(days=1)
+                    end_date = end.strftime("%Y-%m-%d")
             if start_date not in self.stocks[s].df['daily_return']:
+                return []
+            if end_date not in self.stocks[s].df['daily_return']:
                 return []
             self.stocks[s].momentum = self.momentum(s, start_date, end_date, ranking_period)
         ordered = sorted(self.stocks.items(), key=lambda kv: kv[1].momentum, reverse = False)
@@ -74,7 +84,7 @@ class Analyzer:
         
         #pick top n
         for (ticker, stock) in ordered:
-            if len(winners) < n and stock.momentum > 0:
+            if len(winners) < n:
                 if volume_filter == True:
                     prev_start = start - timedelta(days= n*3)
                     prev_start_date = prev_start.strftime("%Y-%m-%d")
@@ -127,13 +137,21 @@ class Analyzer:
 
         #rank stocks based on momentum
         for s in self.stocks:
-            for i in range(n):
+            for i in range(ranking_period):
                 if start_date in self.stocks[s].df['daily_return']:
                     break
                 else:
                     start -= timedelta(days=1)
                     start_date = start.strftime("%Y-%m-%d")
+            for i in range(ranking_period):
+                if end_date in self.stocks[s].df['daily_return']:
+                    break
+                else:
+                    end -= timedelta(days=1)
+                    end_date = end.strftime("%Y-%m-%d")
             if start_date not in self.stocks[s].df['daily_return']:
+                return []
+            if end_date not in self.stocks[s].df['daily_return']:
                 return []
             self.stocks[s].momentum = self.momentum(s, start_date, end_date, ranking_period)
         ordered = sorted(self.stocks.items(), key=lambda kv: kv[1].momentum, reverse = True)
@@ -141,7 +159,7 @@ class Analyzer:
         
         #pick top n
         for (ticker, stock) in ordered:
-            if len(losers) < n and stock.momentum < 0:
+            if len(losers) < n:
                 if volume_filter == True:
                     prev_start = start - timedelta(days= n*3)
                     prev_start_date = prev_start.strftime("%Y-%m-%d")
@@ -171,19 +189,68 @@ class Analyzer:
         return self.stocks[ticker]
 
     def stock_price(self, ticker, date):
-        if ticker == 'cash': return 1
-        return self.stocks[ticker].df['Adj Close'][date]
+        return self.stocks[ticker][date]
 
 
     # //TODO: add/implement other methods related to the analyzation part
+    
+    #test if selected stocks have higher/lower returns than SPY
+    #look ahead at the holding period returns
+    #assume that momentums have already been calculted
+    #Null: spy mean and the test_stocks mean are the same
+    #Alt: the means are different (p value < 0.05)
+    def t_test(self, date, ranking_period, test_stocks):
+        """
+        :param date: (str)
+        :param ranking_period: length of ranking period (int)
+        :param test_stocks: list of stocks that we want to test if significant
+        :return p-value (float)
+        """
+        start = datetime.strptime(date, '%Y-%m-%d')
+        
+        #datetime for end of ranking_period
+        end = start + timedelta(days=ranking_period)
+        
+        #change times back to str
+        start_date = start.strftime("%Y-%m-%d")
+        end_date = end.strftime("%Y-%m-%d")
+        
+        test_returns = []
+        for s in test_stocks:
+            for i in range(ranking_period):
+                if start_date in self.stocks[s].df['daily_return']:
+                    break
+                else:
+                    start -= timedelta(days=1)
+                    start_date = start.strftime("%Y-%m-%d")
+            for i in range(ranking_period):
+                if end_date in self.stocks[s].df['daily_return']:
+                    break
+                else:
+                    end -= timedelta(days=1)
+                    end_date = end.strftime("%Y-%m-%d")
+            assert start_date in self.stocks[s].df['daily_return'],"Invalid start date"
+            assert end_date in self.stocks[s].df['daily_return'],"Invalid end date"
+            test_returns += [np.mean(self.stocks[s].df['daily_return'].loc[start_date:end_date].dropna())]
+            
+        spy_return = np.mean(self.stocks[s].df['daily_return'].loc[start_date:end_date].dropna())
+    
+        (_, p_value) = stats.ttest_1samp(a=test_returns, popmean=spy_return)
 
+        return p_value
+    
+    #X = sm.add_constant(prev)
+    #model = sm.OLS(cur, X)
+    #modeli = model.fit()
+    #print(results.t_test([1, 0]))
+    #summary = modeli.summary()
 
 if __name__ == "__main__" : 
-     tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI']
+     tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'SPY']
      b = Analyzer(tickers, "2019-01-01")
      
-     c = b.winners("2019-10-01", 20, 5, True)
-     d = b.winners("2019-10-01", 20, 5)
+     c = b.winners("2019-02-01", 20, 5, True)
+     d = b.winners("2019-02-01", 20, 5)
      print(c, d)
      
      e = b.winners("2019-06-01", 20, 5, True)
@@ -193,3 +260,5 @@ if __name__ == "__main__" :
      g = b.losers("2019-06-01", 20, 5, True)
      h = b.losers("2019-06-01", 20, 5)
      print(g, h)
+     
+     print(b.t_test("2019-06-01", 20, d))
