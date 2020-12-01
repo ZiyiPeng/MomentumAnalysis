@@ -11,7 +11,6 @@ class SimpleMomentumStrategy(TradingStrategy):
     # self.records = {ticker: Records[]}
     def apply(self, start_date):
         period, holding_period = self.period, self.period
-        self.df['total_value'] = 0
         # winners(date, period, n, volume_filter=False):
         end_date = self.df.index[-1]
         current_date = datetime.strptime(start_date, '%Y-%m-%d')
