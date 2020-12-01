@@ -1,4 +1,4 @@
-from datetime import timedelta
+from collections import defaultdict
 
 import pandas as pd
 from itertools import accumulate
@@ -19,7 +19,7 @@ class TradingStrategy:
         self.analyzer = analyzer
         self.initial_value = init_value
         self.period = period
-        self.records = {}
+        self.records = defaultdict(list)
         # TODO: clean this part
         t = list(analyzer.stocks.keys())[0]
         self.df = pd.DataFrame(index=analyzer.stocks[t].df.index, columns=['value', 'daily_return'])
@@ -33,13 +33,18 @@ class TradingStrategy:
         :param is_long: whether to long this stock or short it (bool)
         :return: a dict which contains trading records and change in purchasing capacity when the position is closed
         """
-        end_date = date + timedelta(days=self.period)
+        end_date_idx = self.df.index.get_loc(date) + self.period
+        end_date = self.df.index[end_date_idx]
+        if ticker == 'cash':
+            record1 = TradingRecord(ticker, total_value if is_long else -total_value, date, 1)
+            record2 = TradingRecord(ticker, -total_value if is_long else total_value, end_date, 1)
+            return {'records': [record1, record2], 'capacity_delta': 0}
         enter_price = self.analyzer.stock_price(ticker, date)
         exit_price = self.analyzer.stock_price(ticker, end_date)
         position = total_value / enter_price if is_long else -total_value / enter_price
         record1 = TradingRecord(ticker, position, date, enter_price)
         record2 = TradingRecord(ticker, -position, end_date, exit_price)
-        capacity_delta = (enter_price - exit_price) * position
+        capacity_delta = (exit_price - enter_price) * position
         return {'records': [record1, record2], 'capacity_delta': capacity_delta}
 
     # apply this trading strategy and fill out trading_records
@@ -54,7 +59,7 @@ class TradingStrategy:
     # after this method is called, self.df should contain 2 columns 'value' & 'daily_return'
     def backtrace(self):
         tickers = self.records.keys()
-        stocks_prices = {t:self.analyzer.get_stock(t).get_prices() for t in tickers}
+        stocks_prices = {t:self.analyzer.get_stock(t).get_prices() for t in tickers if t != 'cash'}
         # calculate portfolio's value everyday
         for t in tickers:
             # determine accumulated position of the stock on every single day
@@ -66,7 +71,7 @@ class TradingStrategy:
                 self.df[t+'_pos'][d] = accumulated_pos[idx]
             self.df[t + '_pos'] = self.df[t+'_pos'].fillna(method='ffill')
             # update portfolio's value by including this stock's contribution to portfolio's value
-            self.df['value'] += self.df[t + '_pos'] * stocks_prices[t]
+            self.df['value'] += self.df[t + '_pos'] * stocks_prices[t] if t != 'cash' else self.df[t + '_pos']
         self.df['daily_return'] = np.log(self.df['value'].pct_change().fillna(0) + 1)
 
     def calc_total_return(self):

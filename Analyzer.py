@@ -308,5 +308,7 @@ if __name__ == "__main__" :
      
      #test holding period returns
      print(b.t_test("2019-06-01", 20, d))
-     
+
+
      b.plot_holding("2019-06-01", 120, d)
+
