@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 import helper
+from get_all_tickers import get_tickers as gt
 
 class Analyzer:
     def __init__(self, tickers, start, end=None):
@@ -25,15 +26,16 @@ class Analyzer:
     def momentum(self, s, start_idx, end_idx):
         """
         :param s: stock
-        :param start_date: datetime for start of ranking_period
-        :param end_date: datetime for end of ranking_period
+        :param start_idx: index for start of ranking_period
+        :param end_idx: index for end of ranking_period
         :return the momentum based on returns
         """
         returns = self.stocks[s].df['daily_return'].iloc[start_idx:end_idx].dropna()
         x = np.arange(len(returns))
         slope, _, rvalue, _, _ = linregress(x, returns)
         momentum = ((1 + slope) ** 252) * (rvalue ** 2) # annualize slope and multiply by R^2
-        #print(momentum)
+        #if s == "TSLA":
+            #print(start_idx, end_idx, returns)
         return (returns, momentum)
     
     # //TODO:
@@ -50,33 +52,34 @@ class Analyzer:
         """
         winners = []
         
-        for s in self.stocks:
-            ranking_end = self.stocks[s].df.index.get_loc(date)
-            ranking_start = ranking_end - ranking_period
-            break
-        
         #rank stocks based on momentum
         for s in self.stocks:
-            if ranking_end < ranking_period :
-                return []
-            (returns, momentum) = self.momentum(s, ranking_start, ranking_end)
-            self.stocks[s].momentum = momentum
-            self.stocks[s].returns = np.mean(returns)
-        ordered = sorted(self.stocks.items(), key=lambda kv: kv[1].momentum, reverse = False)
+            try:
+                ranking_end = self.stocks[s].df.index.get_loc(date)
+                ranking_start = ranking_end - ranking_period
+                if ranking_end < ranking_period :
+                    return []
+                (returns, momentum) = self.momentum(s, ranking_start, ranking_end)
+                self.stocks[s].momentum = momentum
+                self.stocks[s].returns = np.mean(returns)
+            except KeyError:
+                self.stocks[s].momentum = None
+        good_stocks = [s for s in self.stocks if self.stocks[s].momentum != None]
+        ordered = sorted(good_stocks, key=lambda s: self.stocks[s].momentum, reverse = False)
         
         #pick top n
-        for (ticker, stock) in ordered:
+        for ticker in ordered:
             if len(winners) < n:
                 if volume_filter == True:
                     
-                    prev_start = ranking_start - ranking_period*3
+                    prev_start = ranking_start - (ranking_period*3)
                     prev_end = ranking_start
                     
-                    if prev_end < ranking_period *3 :
+                    if prev_end < (ranking_period *3) :
                         return []
 
-                    prev_vol = np.mean(stock.df['Volume'].iloc[prev_start:prev_end].dropna())
-                    last_vol = np.mean(stock.df['Volume'].iloc[ranking_start:ranking_end].dropna())
+                    prev_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[prev_start:prev_end].dropna())
+                    last_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[ranking_start:ranking_end].dropna())
 
                     if last_vol > prev_vol:
                         winners += [ticker]
@@ -99,25 +102,32 @@ class Analyzer:
         losers = []
         
         for s in self.stocks:
-            ranking_end = self.stocks[s].df.index.get_loc(date)
-            ranking_start = ranking_end - ranking_period
-            break
-        
-        ordered_R = sorted(self.stocks.items(), key=lambda kv: kv[1].momentum, reverse = True)
+            try:
+                ranking_end = self.stocks[s].df.index.get_loc(date)
+                ranking_start = ranking_end - ranking_period
+                if ranking_end < ranking_period :
+                    return []
+                (returns, momentum) = self.momentum(s, ranking_start, ranking_end)
+                self.stocks[s].momentum = momentum
+                self.stocks[s].returns = np.mean(returns)
+            except KeyError:
+                self.stocks[s].momentum = None
+        good_stocks = [s for s in self.stocks if self.stocks[s].momentum != None]
+        ordered_R = sorted(good_stocks, key=lambda s: self.stocks[s].momentum, reverse = True)
         
         #pick top n
                     
-        for (ticker, stock) in ordered_R:
+        for ticker in ordered_R:
             if len(losers) < n:
                 if volume_filter == True:
-                    prev_start = ranking_start - ranking_period*3
+                    prev_start = ranking_start - (ranking_period*3)
                     prev_end = ranking_start
 
-                    if prev_end < ranking_period *3 :
+                    if prev_end < (ranking_period *3) :
                         return []
                     
-                    prev_vol = np.mean(stock.df['Volume'].iloc[prev_start:prev_end].dropna())
-                    last_vol = np.mean(stock.df['Volume'].iloc[ranking_start:ranking_end].dropna())
+                    prev_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[prev_start:prev_end].dropna())
+                    last_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[ranking_start:ranking_end].dropna())
 
                     if last_vol > prev_vol:
                         losers += [ticker]
@@ -213,13 +223,13 @@ class Analyzer:
     def plot_holding(self, date, test_hold, test_stocks):
         p_values = []
         hold = []
-        for i in range(2, test_hold):
+        for i in range(60, test_hold):
             try:
                 p_value = self.t_test(date, i, test_stocks)
-                hold += [i]
-                p_values += [p_value]
             except AssertionError:
                 pass 
+            hold += [i]
+            p_values += [p_value]
         plt.plot(hold, p_values)
         plt.hlines(0.05, 0, test_hold, color = 'red', label = 'p-value = 0.05')
         plt.legend()
@@ -249,7 +259,7 @@ class Analyzer:
         plt.show()
         
         ax2 = plt.axes(projection='3d')
-        ax2.scatter3D(length_ranking_period, volumes,returns)
+        ax2.scatter3D(length_ranking_period, volumes, returns)
         ax2.set_title("Volumes vs Returns for different ranking_periods")
         plt.show()
         '''
@@ -266,19 +276,20 @@ class Analyzer:
         '''
         
 if __name__ == "__main__" : 
-     tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'SPY']
-     b = Analyzer(tickers, "2020-01-01")
+     #tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'TSLA']
+     tickers = gt.get_biggest_n_tickers(40)
+     b = Analyzer(tickers, "2010-01-01")
      
-     w1 = b.winners("2020-09-01", 20, 5)
-     l1 = b.losers("2020-09-01", 20, 5)
+     w1 = b.winners("2010-02-09", 25, 5)
+     l1 = b.losers("2010-02-09", 25, 5)
      
-     b = Analyzer(tickers, "2020-01-01")
-     w2 = b.winners("2020-09-01", 20, 5, True)
-     l2 = b.losers("2020-09-01", 20, 5, True)
+     #b = Analyzer(tickers, "2012-01-01")
+     #w2 = b.winners("2013-08-01", 20, 5, True)
+    # l2 = b.losers("2013-08-01", 20, 5, True)
      
      
      print(w1, l1)
-     print(w2, l2)
+     #print(w2, l2)
 
 
      #length of holding period = ranking period
@@ -286,10 +297,10 @@ if __name__ == "__main__" :
      #print(b.t_test_momentum(tickers, d))
      
      #test holding period returns
-     print(b.t_test("2020-09-01", 20, w1))
+     #print(b.t_test("2020-09-01", 20, w1))
 
 
-     #b.plot_holding("2020-09-01", 120, w1)
+     #b.plot_holding("2020-09-01", 70, w1)
      
-     #b.plot_momentum(['AAPL'], "2020-09-01", 255)
+    # b.plot_momentum(['AAPL'], "2020-09-01", 255)
 
