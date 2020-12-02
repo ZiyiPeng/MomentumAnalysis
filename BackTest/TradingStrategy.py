@@ -2,11 +2,10 @@ from collections import defaultdict
 
 import pandas as pd
 from itertools import accumulate
-
+from scipy import stats
 import numpy as np
-
 from BackTest.TradingRecord import TradingRecord
-
+import matplotlib.pyplot as plt
 
 class TradingStrategy:
     def __init__(self, analyzer, init_value, period):
@@ -71,15 +70,63 @@ class TradingStrategy:
                 self.df[t+'_pos'][d] = accumulated_pos[idx]
             self.df[t + '_pos'] = self.df[t+'_pos'].fillna(method='ffill')
             # update portfolio's value by including this stock's contribution to portfolio's value
-            self.df['value'] += self.df[t + '_pos'] * stocks_prices[t] if t != 'cash' else self.df[t + '_pos']
+            self.df['value'] += (self.df[t + '_pos'] * stocks_prices[t]).fillna(0) if t != 'cash' else self.df[t + '_pos']
         self.df['daily_return'] = np.log(self.df['value'].pct_change().fillna(0) + 1)
+        self.df['annual_return'] = self.df['daily_return'].rolling(252).sum()
 
     def calc_total_return(self):
         return np.sum(self.df['daily_return'])
 
-    def calc_annual_return(self):
-        self.df['annual_return'] = self.df['daily_return'].rolling(252).sum()
-        return np.mean(self.df['annual_return'])
+    # plot the value of this portfolio on top of benchmark
+    def plot_values(self, benchmark):
+        """
+        :param benchmark: a populated stock instance (SPY)
+        """
+        df = pd.DataFrame(columns=['port_value', 'bench_value'], index=benchmark.df.index)
+        benchmark_value = benchmark.df['daily_return'].cumsum(skipna=True)
+        benchmark_value = self.initial_value * np.exp(benchmark_value)
+        df['bench_value'] = benchmark_value
+        df['port_value'] = self.df['value']
+        df=df.replace(0, np.nan).dropna()
+        df.plot()
+        plt.title("Strategy's Value vs Benchmark's")
+        plt.show()
+
+    #plot daily return of this portfolio on top of benchmark's daily return
+    def plot_daily_return(self, benchmark):
+        """
+        :param benchmark: a populated stock instance (SPY)
+        """
+        df = pd.DataFrame(columns=['portfolio_daily_return', 'benchmark_daily_return'], index=benchmark.df.index)
+        df['benchmark_daily_return'] = benchmark.df['daily_return']
+        df['portfolio_daily_return'] = self.df['daily_return']
+        df = df.replace(0, np.nan).dropna()
+        df.plot()
+        plt.title("Strategy's Daily Return vs Benchmark's")
+        plt.show()
+
+    #plot annual return of this portfolio on top of benchmark's annual return
+    def plot_annual_return(self, benchmark):
+        df = pd.DataFrame(columns=['portfolio_annual_return', 'benchmark_annual_return'], index=benchmark.df.index)
+        df['benchmark_annual_return'] = benchmark.df['daily_return'].rolling(252).sum()
+        df['portfolio_annual_return'] = self.df['annual_return']
+        df = df.replace(0, np.nan).dropna()
+        df.plot()
+        plt.title("Strategy's Annual Return vs Benchmark's")
+        plt.show()
+
+    def t_test(self, benchmark):
+        df = pd.DataFrame(columns=['port_return', 'bench_return'], index=benchmark.df.index)
+        df['port_return'] = self.df['daily_return'][self.period+1:]
+        df['bench_return'] = benchmark.df['daily_return']
+        df = df.replace(0, np.nan)
+        stats.ttest_rel(df['port_return'], df['bench_return'], nan_policy='omit').pvalue
+
+    def average_daily_return(self):
+        return self.df['daily_return'].mean(skipna=True)
+
+    def average_annual_return(self):
+        return self.df['annual_return'].mean(skipna=True)
 
     # TODO: add & implement methods for analyzation
     # 1) compare the strategy's daily return to SP500's
