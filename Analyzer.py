@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
+import helper
 
 class Analyzer:
     def __init__(self, tickers, start, end=None):
@@ -40,7 +41,7 @@ class Analyzer:
     # pick n stock that shows the largest positive momentum during the ranking period
     # if volume_filter is applied, filter out stocks whose trading volume on the previous day is below
     # its average in the ranking period
-    def winners_losers(self, date, ranking_period, n, volume_filter=False):
+    def winners(self, date, ranking_period, n, volume_filter=False):
         """
         :param date: (str) (Assumes that this is a valid date in our dataframe)
         :param ranking_period: length of ranking period (int)
@@ -49,7 +50,6 @@ class Analyzer:
         :return a list of tickers str[]
         """
         winners = []
-        losers = []
         
         for s in self.stocks:
             ranking_end = self.stocks[s].df.index.get_loc(date)
@@ -64,7 +64,6 @@ class Analyzer:
             self.stocks[s].momentum = momentum
             self.stocks[s].returns = np.mean(returns)
         ordered = sorted(self.stocks.items(), key=lambda kv: kv[1].momentum, reverse = False)
-        ordered_R = sorted(self.stocks.items(), key=lambda kv: kv[1].momentum, reverse = True)
         
         #pick top n
         for (ticker, stock) in ordered:
@@ -84,6 +83,31 @@ class Analyzer:
                         winners += [ticker]
                 else:
                     winners += [ticker] 
+
+        return winners
+
+    # pick n stock that shows the largest positive momentum during the ranking period
+    # if volume_filter is applied, filter out stocks whose trading volume on the previous day is below
+    # its average in the ranking period
+    def losers(self, date, ranking_period, n, volume_filter=False):
+        """
+        :param date: (str) (Assumes that this is a valid date in our dataframe)
+        :param ranking_period: length of ranking period (int)
+        :param n: number of winners to pick (int)
+        :param volume_filter: whether to apply volume filter on top of momentum indicator (bool)
+        :return a list of tickers str[]
+        """
+        losers = []
+        
+        for s in self.stocks:
+            ranking_end = self.stocks[s].df.index.get_loc(date)
+            ranking_start = ranking_end - ranking_period
+            break
+        
+        ordered_R = sorted(self.stocks.items(), key=lambda kv: kv[1].momentum, reverse = True)
+        
+        #pick top n
+                    
         for (ticker, stock) in ordered_R:
             if len(losers) < n:
                 if volume_filter == True:
@@ -100,7 +124,7 @@ class Analyzer:
                         losers += [ticker]
                 else:
                     losers += [ticker] 
-        return (winners, losers)
+        return losers
 
     def get_stock(self, ticker):
         return self.stocks[ticker]
@@ -140,46 +164,28 @@ class Analyzer:
     
     def calc_returns_momentums_volumes(self, date, ranking_period, test_stocks):
             
-        start = datetime.strptime(date, '%Y-%m-%d')
+        for s in test_stocks:
+            ranking_end = self.stocks[s].df.index.get_loc(date)
+            ranking_start = ranking_end - ranking_period
+            hold_start = ranking_end
+            hold_end = hold_start + ranking_period
+            break
         
-        #datetime for end of ranking_period
-        end = start + timedelta(days=ranking_period)
+        assert ranking_end >= ranking_period, "Unable to find ranking period"
         
-        rank_start = start - timedelta(days=ranking_period)
-        
-        #change times back to str
-        start_date = start.strftime("%Y-%m-%d")
-        end_date = end.strftime("%Y-%m-%d")
-        rank_date = rank_start.strftime("%Y-%m-%d")
+        try:
+            self.stocks[s].df['daily_return'].iloc[hold_start:hold_end]
+        except AssertionError:
+            print("Unable to find holding period")
         
         test_returns = []
         test_momentums = []
         test_volumes = []
         for s in test_stocks:
-            for i in range(ranking_period):
-                if rank_date in self.stocks[s].df['daily_return']:
-                    break
-                else:
-                    rank_start += timedelta(days=1)
-                    rank_date = rank_start.strftime("%Y-%m-%d")
-            for i in range(ranking_period):
-                if start_date in self.stocks[s].df['daily_return']:
-                    break
-                else:
-                    start -= timedelta(days=1)
-                    start_date = start.strftime("%Y-%m-%d")
-            for i in range(ranking_period):
-                if end_date in self.stocks[s].df['daily_return']:
-                    break
-                else:
-                    end -= timedelta(days=1)
-                    end_date = end.strftime("%Y-%m-%d")
-            assert start_date in self.stocks[s].df['daily_return'],"Invalid start date"
-            assert end_date in self.stocks[s].df['daily_return'],"Invalid end date"
-            assert rank_date in self.stocks[s].df['daily_return'],"Invalid ranking date"
-            test_returns += [np.mean(self.stocks[s].df['daily_return'].loc[start_date:end_date].dropna())]
-            test_momentums += [self.momentum(s, rank_date, start_date)]
-            test_volumes += [np.mean(self.stocks[s].df['Volume'].loc[rank_date:start_date].dropna())]
+            test_returns += [np.mean(self.stocks[s].df['daily_return'].iloc[hold_start:hold_end].dropna())]
+            (_, momentums) = self.momentum(s, ranking_start, ranking_end)
+            test_momentums += [momentums]
+            test_volumes += [np.mean(self.stocks[s].df['Volume'].iloc[ranking_start:ranking_end].dropna())]
         return test_returns, test_momentums, test_volumes
     
     #test if selected stocks have higher/lower returns than SPY
@@ -196,7 +202,10 @@ class Analyzer:
         """
         (test_returns, _, _) = self.calc_returns_momentums_volumes(date, ranking_period, test_stocks)
             
-        spy_return = self.stocks['SPY'].returns
+        spy_prices = helper.get_historical_data("SPY", date, None)['Adj Close']
+        all_spy_returns = np.log(spy_prices.pct_change() + 1)
+        
+        spy_return = np.mean(all_spy_returns[:ranking_period].dropna())
     
         (_, p_value) = stats.ttest_1samp(a=test_returns, popmean=spy_return)
 
@@ -261,28 +270,27 @@ if __name__ == "__main__" :
      tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'SPY']
      b = Analyzer(tickers, "2020-01-01")
      
-     c = b.winners_losers("2020-09-01", 20, 5, True)
-     d = b.winners_losers("2020-09-01", 20, 5)
-     print(c, d)
+     w1 = b.winners("2020-09-01", 20, 5)
+     l1 = b.losers("2020-09-01", 20, 5)
      
-     '''
-     #e = b.winners("2019-06-01", 20, 5, True)
-     #f = b.winners("2019-06-01", 20, 5)
-     print(e, f)
+     b = Analyzer(tickers, "2020-01-01")
+     w2 = b.winners("2020-09-01", 20, 5, True)
+     l2 = b.losers("2020-09-01", 20, 5, True)
      
-     g = b.losers("2019-03-01", 20, 5, True)
-     h = b.losers("2019-06-01", 20, 5)
-     print(g, h)
      
+     print(w1, l1)
+     print(w2, l2)
+
+
      #length of holding period = ranking period
      #test seleted stock momentums
      #print(b.t_test_momentum(tickers, d))
      
      #test holding period returns
-     print(b.t_test("2019-06-01", 20, f))
+     print(b.t_test("2020-09-01", 20, w1))
 
 
-     b.plot_holding("2019-06-01", 120, d)
+     #b.plot_holding("2020-09-01", 120, w1)
      
-     b.plot_momentum(['AAPL'], "2019-06-01", 255)
-'''
+     #b.plot_momentum(['AAPL'], "2020-09-01", 255)
+
