@@ -18,6 +18,7 @@ class SimpleMomentumStrategy(TradingStrategy):
         while current_date < end_date:
             end_period_idx = self.df.index.get_loc(current_date) + self.period
             if end_period_idx >= self.df.shape[0]:
+                self.records['cash'].append(TradingRecord('cash', capacity, current_date, 1))
                 break
             winners = self.analyzer.winners(current_date.strftime("%Y-%m-%d"), period, 5, False)
             losers = self.analyzer.losers(current_date.strftime("%Y-%m-%d"), period, 5, False)
