@@ -274,65 +274,7 @@ class Analyzer:
         plt.ylabel("Return")
         plt.show()
         '''
-    def plot_macd(self, ticker,start,period1, period2, period3):
-        df = helper.get_historical_data(ticker, start)
-        plt.figure(figsize=(20,10)) # change default figure size
-        plt.plot(df.index,df['Adj Close'])
-        plt.title("NASDAQ: APPL daily MACD")
-        plt.ylabel("Price, USD")
-        plt.grid()
-        plt.show()
-       
-        exp1 = df['Adj Close'].ewm(span=period1, adjust=False).mean()
-        exp2 = df['Adj Close'].ewm(span=period2, adjust=False).mean()
-        macd = exp1-exp2
-        exp3 = macd.ewm(span=period3, adjust=False).mean()
-        
 
-        plt.figure(figsize=(20,10))
-        plt.plot(df.index, macd, label='MACD', color = 'red')
-        plt.plot(df.index, exp3, label='Signal Line', color='blue')
-        plt.xticks(rotation=45)
-        plt.legend(loc='upper left')
-        plt.show()
-        
-        return df
-    
-
-    def plot_rsi(self, ticker,start):
-        df = helper.get_historical_data(ticker, start)
-        
-
-        window_length = 14
-        # Get just the adjusted close
-        close = df['Adj Close']
-        # Get the difference in price from previous step
-        delta = close.diff()
-        # Get rid of the first row, which is NaN since it did not have a previous 
-        # row to calculate the differences
-        delta = delta[1:] 
-
-        # Make the positive gains (up) and negative gains (down) Series
-        up, down = delta.copy(), delta.copy()
-        up[up < 0] = 0
-        down[down > 0] = 0
-
-        # Calculate the EWMA
-        roll_up1 = up.ewm(span=window_length).mean()
-        roll_down1 = down.abs().ewm(span=window_length).mean()
-
-        # Calculate the RSI based on EWMA
-        RS1 = roll_up1 / roll_down1
-        RSI1 = 100.0 - (100.0 / (1.0 + RS1))
-
-        # Compare graphically
-        plt.figure(figsize=(20,10))
-        RSI1.plot()
-        plt.legend(['RSI via EWMA'])
-        plt.xticks(rotation=45)
-        plt.show()
-       
-        return RSI1   
 if __name__ == "__main__" : 
      #tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'TSLA']
      tickers = gt.get_biggest_n_tickers(40)
