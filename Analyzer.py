@@ -4,7 +4,6 @@ import os
 from Stock import Stock
 from scipy.stats import linregress
 import scipy.stats as stats
-from datetime import datetime, timedelta
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
