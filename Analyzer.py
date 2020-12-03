@@ -57,11 +57,13 @@ class Analyzer:
             try:
                 ranking_end = self.stocks[s].df.index.get_loc(date)
                 ranking_start = ranking_end - ranking_period
-                if ranking_end < ranking_period :
-                    return []
-                (returns, momentum) = self.momentum(s, ranking_start, ranking_end)
-                self.stocks[s].momentum = momentum
-                self.stocks[s].returns = np.mean(returns)
+                if ranking_end < ranking_period:
+                     self.stocks[s].momentum = None
+                     pass
+                else:
+                    (returns, momentum) = self.momentum(s, ranking_start, ranking_end)
+                    self.stocks[s].momentum = momentum
+                    self.stocks[s].returns = np.mean(returns)
             except KeyError:
                 self.stocks[s].momentum = None
         good_stocks = [s for s in self.stocks if self.stocks[s].momentum != None]
@@ -71,18 +73,23 @@ class Analyzer:
         for ticker in ordered:
             if len(winners) < n:
                 if volume_filter == True:
+                    ranking_end = self.stocks[ticker].df.index.get_loc(date)
+                    ranking_start = ranking_end - ranking_period
                     
                     prev_start = ranking_start - (ranking_period*3)
                     prev_end = ranking_start
                     
                     if prev_end < (ranking_period *3) :
-                        return []
+                        pass
 
-                    prev_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[prev_start:prev_end].dropna())
-                    last_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[ranking_start:ranking_end].dropna())
-
-                    if last_vol > prev_vol:
-                        winners += [ticker]
+                    try:
+                        prev_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[prev_start:prev_end].dropna())
+                        last_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[ranking_start:ranking_end].dropna())
+                        if last_vol > prev_vol:
+                            winners += [ticker]
+                    except:
+                        pass
+                    
                 else:
                     winners += [ticker] 
 
@@ -100,18 +107,6 @@ class Analyzer:
         :return a list of tickers str[]
         """
         losers = []
-        
-        for s in self.stocks:
-            try:
-                ranking_end = self.stocks[s].df.index.get_loc(date)
-                ranking_start = ranking_end - ranking_period
-                if ranking_end < ranking_period :
-                    return []
-                (returns, momentum) = self.momentum(s, ranking_start, ranking_end)
-                self.stocks[s].momentum = momentum
-                self.stocks[s].returns = np.mean(returns)
-            except KeyError:
-                self.stocks[s].momentum = None
         good_stocks = [s for s in self.stocks if self.stocks[s].momentum != None]
         ordered_R = sorted(good_stocks, key=lambda s: self.stocks[s].momentum, reverse = True)
         
@@ -120,17 +115,22 @@ class Analyzer:
         for ticker in ordered_R:
             if len(losers) < n:
                 if volume_filter == True:
+                    ranking_end = self.stocks[ticker].df.index.get_loc(date)
+                    ranking_start = ranking_end - ranking_period
                     prev_start = ranking_start - (ranking_period*3)
                     prev_end = ranking_start
 
                     if prev_end < (ranking_period *3) :
-                        return []
+                        pass
                     
-                    prev_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[prev_start:prev_end].dropna())
-                    last_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[ranking_start:ranking_end].dropna())
+                    try:
+                        prev_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[prev_start:prev_end].dropna())
+                        last_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[ranking_start:ranking_end].dropna())
 
-                    if last_vol > prev_vol:
-                        losers += [ticker]
+                        if last_vol > prev_vol:
+                            losers += [ticker]
+                    except:
+                        pass
                 else:
                     losers += [ticker] 
         return losers
@@ -278,10 +278,14 @@ class Analyzer:
 if __name__ == "__main__" : 
      #tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'TSLA']
      tickers = gt.get_biggest_n_tickers(40)
+     #print(tickers)
      b = Analyzer(tickers, "2010-01-01")
      
      w1 = b.winners("2010-02-09", 25, 5)
      l1 = b.losers("2010-02-09", 25, 5)
+     
+     w2 = b.winners("2010-02-09", 5, 5, True)
+     l2 = b.losers("2010-02-09", 5, 5, True)
      
      #b = Analyzer(tickers, "2012-01-01")
      #w2 = b.winners("2013-08-01", 20, 5, True)
@@ -289,7 +293,7 @@ if __name__ == "__main__" :
      
      
      print(w1, l1)
-     #print(w2, l2)
+     print(w2, l2)
 
 
      #length of holding period = ranking period
