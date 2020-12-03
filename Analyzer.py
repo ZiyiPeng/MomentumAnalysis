@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 import helper
 from get_all_tickers import get_tickers as gt
+import talib
+# pip install talib
 
 class Analyzer:
     def __init__(self, tickers, start, end=None):
