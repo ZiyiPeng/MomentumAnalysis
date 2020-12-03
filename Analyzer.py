@@ -371,7 +371,9 @@ if __name__ == "__main__" :
      
      print(w1, l1)
      print(w2, l2)
-
+    
+     #checkdf = b.appeartimes("2010-01-01", 25, 5,"2010-06-28", 'TSLA')
+     #print(checkdf)
 
      #length of holding period = ranking period
      #test seleted stock momentums
