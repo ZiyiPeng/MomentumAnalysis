@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 import helper
 from get_all_tickers import get_tickers as gt
-import talib
+#import talib
 # pip install talib
 
 class Analyzer:
@@ -41,9 +41,9 @@ class Analyzer:
         return (returns, momentum)
     
     # //TODO:
-    # pick n stock that shows the largest positive momentum during the ranking period
-    # if volume_filter is applied, filter out stocks whose trading volume on the previous day is below
-    # its average in the ranking period
+    # pick n stock that shows the largest momentum during the ranking period
+    # if volume_filter is applied, filter out stocks whose trading volume in the
+    # ranking period is lower than its average in the previous three months
     def winners(self, date, ranking_period, n, volume_filter=False):
         """
         :param date: (str) (Assumes that this is a valid date in our dataframe)
@@ -97,9 +97,9 @@ class Analyzer:
 
         return winners
 
-    # pick n stock that shows the largest positive momentum during the ranking period
-    # if volume_filter is applied, filter out stocks whose trading volume on the previous day is below
-    # its average in the ranking period
+    # pick n stock that shows the smallest momentum during the ranking period
+    # if volume_filter is applied, filter out stocks whose trading volume in the
+    # ranking period is lower than its average in the previous three months
     def losers(self, date, ranking_period, n, volume_filter=False):
         """
         :param date: (str) (Assumes that this is a valid date in our dataframe)
@@ -143,38 +143,16 @@ class Analyzer:
     def stock_price(self, ticker, date):
         return self.stocks[ticker].df['Adj Close'][date]
 
-
-    # //TODO: add/implement other methods related to the analyzation part
-    
-    '''
-    #test if selected stocks have higher/lower returns than the population
-    #look ahead at the holding period returns
-    #assume that momentums have already been calculted
-    #Null: spy mean and the test_stocks mean are the same
-    #Alt: the means are different (p value < 0.05)
-    def t_test_momentum(self, tickers, test_stocks):
+    def calc_returns_momentums_volumes(self, date, ranking_period, test_stocks):
         """
         :param date: (str)
-        :param tickers: a list of tickers (str[])
+        :param ranking_period: length of ranking period (int)
         :param test_stocks: list of stocks that we want to test if significant
-        :return p-value (float)
-        """
-        total_momentum = []
-        test_momentum = []
-        for s in tickers:
-            total_momentum += [self.stocks[s].momentum]
-            if s in test_stocks:
-                test_momentum += [self.stocks[s].momentum]
-            
-        pop_mean_momentum = self.stocks['SPY'].momentum
-    
-        (_, p_value) = stats.ttest_1samp(a=test_momentum, popmean=pop_mean_momentum)
-
-        return p_value
-    '''
-    
-    def calc_returns_momentums_volumes(self, date, ranking_period, test_stocks):
-            
+        :return test_returns: list of returns in the holding period
+        :return test_momentums: list of momentums in the ranking period
+        :return test_volumes: list of volumes in the holding period
+        """    
+        
         for s in test_stocks:
             ranking_end = self.stocks[s].df.index.get_loc(date)
             ranking_start = ranking_end - ranking_period
@@ -204,7 +182,7 @@ class Analyzer:
     #assume that momentums have already been calculted
     #Null: spy mean and the test_stocks mean are the same
     #Alt: the means are different (p value < 0.05)
-    def t_test(self, date, ranking_period, test_stocks):
+    def t_test(self, date, ranking_period, test_stocks, all_spy_returns):
         """
         :param date: (str)
         :param ranking_period: length of ranking period (int)
@@ -212,9 +190,6 @@ class Analyzer:
         :return p-value (float)
         """
         (test_returns, _, _) = self.calc_returns_momentums_volumes(date, ranking_period, test_stocks)
-            
-        spy_prices = helper.get_historical_data("SPY", date, None)['Adj Close']
-        all_spy_returns = np.log(spy_prices.pct_change() + 1)
         
         spy_return = np.mean(all_spy_returns[:ranking_period].dropna())
     
@@ -223,11 +198,21 @@ class Analyzer:
         return p_value
     
     def plot_holding(self, date, test_hold, test_stocks):
+        """
+        :param date: (str)
+        :param test_hold length of holding_period
+        :param test_stocks: list of stocks that we want to hold
+        :plot p_value vs length of holding_period
+        """
         p_values = []
         hold = []
-        for i in range(60, test_hold):
+        
+        spy_prices = helper.get_historical_data("SPY", date, None)['Adj Close']
+        all_spy_returns = np.log(spy_prices.pct_change() + 1)
+        
+        for i in range(1, test_hold):
             try:
-                p_value = self.t_test(date, i, test_stocks)
+                p_value = self.t_test(date, i, test_stocks, all_spy_returns)
             except AssertionError:
                 pass 
             hold += [i]
@@ -281,13 +266,13 @@ if __name__ == "__main__" :
      #tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'TSLA']
      tickers = gt.get_biggest_n_tickers(40)
      #print(tickers)
-     b = Analyzer(tickers, "2010-01-01")
+     b = Analyzer(tickers, "2010-01-04")
      
-     w1 = b.winners("2010-02-09", 25, 5)
-     l1 = b.losers("2010-02-09", 25, 5)
+     w1 = b.winners("2010-08-09", 25, 5)
+     l1 = b.losers("2010-08-09", 25, 5)
      
-     w2 = b.winners("2010-02-09", 5, 5, True)
-     l2 = b.losers("2010-02-09", 5, 5, True)
+     w2 = b.winners("2010-08-09", 25, 5, True)
+     l2 = b.losers("2010-08-09", 25, 5, True)
      
      #b = Analyzer(tickers, "2012-01-01")
      #w2 = b.winners("2013-08-01", 20, 5, True)
@@ -306,7 +291,7 @@ if __name__ == "__main__" :
      #print(b.t_test("2020-09-01", 20, w1))
 
 
-     #b.plot_holding("2020-09-01", 70, w1)
+     b.plot_holding("2015-01-02", 120, w1)
      
-    # b.plot_momentum(['AAPL'], "2020-09-01", 255)
+     b.plot_momentum(['AAPL'], "2015-01-02", 255)
 
