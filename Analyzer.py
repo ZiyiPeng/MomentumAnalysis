@@ -99,7 +99,7 @@ class Analyzer:
         return winners
 
     # pick n stock that shows the largest positive momentum during the ranking period
-    # if volume_filter is applied, filter out stocks whose trading volume on the previous day is below
+    # if volume_filter is applied, filter out stocks whose trading volume on the previous day is above
     # its average in the ranking period
     def losers(self, date, ranking_period, n, volume_filter=False):
         """
@@ -130,7 +130,7 @@ class Analyzer:
                         prev_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[prev_start:prev_end].dropna())
                         last_vol = np.mean(self.stocks[ticker].df['Volume'].iloc[ranking_start:ranking_end].dropna())
 
-                        if last_vol > prev_vol:
+                        if last_vol < prev_vol:
                             losers += [ticker]
                     except:
                         pass

@@ -1,6 +1,7 @@
 from Analyzer import Analyzer
 from get_all_tickers import get_tickers as gt
 
+from BackTest.MomentumVolumeStrategy import MomentumVolumeStrategy
 from BackTest.SimpleMomentumStrategy import SimpleMomentumStrategy
 from Stock import Stock
 
@@ -9,7 +10,7 @@ if __name__ == '__main__':
     analyzer = Analyzer(tickers, start='2010-01-01')
     initial_investment = 10000.0
     period = 10
-    sm_strt = SimpleMomentumStrategy(analyzer, initial_investment, 25)
+    sm_strt = MomentumVolumeStrategy(analyzer, initial_investment, 25)
     # use SPY as benchmark
     SPY = Stock('SPY')
     SPY.populate_df('2010-01-01')

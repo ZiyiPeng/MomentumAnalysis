@@ -19,8 +19,10 @@ class MomentumVolumeStrategy(TradingStrategy):
             end_period_idx = self.df.index.get_loc(current_date) + self.period
             if end_period_idx >= self.df.shape[0]:
                 break
-            winners = self.analyzer.winners(current_date.strftime("%Y-%m-%d"), period, 5, True)
-            losers = self.analyzer.losers(current_date.strftime("%Y-%m-%d"), period, 5, True)
+            w = self.analyzer.winners(current_date.strftime("%Y-%m-%d"), period, 5, True)
+            l = self.analyzer.losers(current_date.strftime("%Y-%m-%d"), period, 5, True)
+            winners = set(w) - set(l)
+            losers = set(l) - set(w)
             capacity_delta = 0
             for s in winners:
                 record_cap_delta = self.trading_record(s, current_date, 2 * capacity / float(len(winners)), True)
