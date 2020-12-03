@@ -32,7 +32,7 @@ class UnitTest(unittest.TestCase):
         s ='TSLA'
         tickers = list(gt.get_biggest_n_tickers(40))
         b = Analyzer(tickers, start_date)
-        self.assertEqual(b.appeartimes( start_date, ranking_period, n, listeddate, s, volume_filter=False), 0,0)
+        self.assertEqual(b.appeartimes( start_date, ranking_period, n, listeddate, s, volume_filter=False), (0,0))
 
 if __name__ == '__main__':
     unittest.main()
