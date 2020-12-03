@@ -323,35 +323,39 @@ class Analyzer:
         fig.savefig("charts/" + ticker + ".png", bbox_inches="tight")
         plt.show()  
     
-    '''  need to correct
-    def appeartimes(self, start_date, ranking_period, n, listeddate, s, volume_filter=False):
+  
 
-        current_date = datetime.strptime(start_date, '%Y-%m-%d')
-        end_date =  datetime.strptime(listeddate, '%Y-%m-%d')
+    def appeartimes(self, start_date, ranking_period, n, checkdate, s,k, volume_filter=False):
+        '''count the time one stock appears before some checktime
+           param start_date: the start date
+           param ranking_period: moementum check period
+           param n: number of stock to pick in each period
+           param checkdate: the date of stock k was listed
+           param s: stock s to get data
+           param k: check stock 
         
-        ranking_end = self.stocks[s].df.index.get_loc(listeddate)
-        # sta_date = self.stocks[s].df.index.get_loc(start_date )
-        # ranking_start = ranking_end - ranking_period
+        '''
+        ranking_end = self.stocks[s].df.index.get_loc(checkdate)
         
-        idx = self.stocks[s].df.index.get_loc(current_date) + ranking_period
+        idx = self.stocks[s].df.index.get_loc(start_date) + ranking_period
         ranking_start = self.stocks[s].df.index[idx]
         i = 0
         j = 0
         while idx <  ranking_end:   
-            winners = self.winners(ranking_start.strftime("%Y-%m-%d"), ranking_period, n, False)
-            losers = self.losers(ranking_start.strftime("%Y-%m-%d"), ranking_period, n, False)
+            winners = self.winners(ranking_start, ranking_period, n, False)
+            losers = self.losers(ranking_start, ranking_period, n, False)
           
-            if s in winners:
+            if k in winners:
                i += 1
         
-            if s in winners:
+            if k in losers:
                j += 1
  
             idx = self.stocks[s].df.index.get_loc(ranking_start) + ranking_period
             ranking_start = self.stocks[s].df.index[idx]
             
         return i,j
-        '''        
+           
 if __name__ == "__main__" : 
      #tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'TSLA']
      tickers = gt.get_biggest_n_tickers(40)
@@ -372,6 +376,7 @@ if __name__ == "__main__" :
      print(w1, l1)
      print(w2, l2)
     
+     a = b.appeartimes("2010-01-04", 25, 5,"2010-06-29",'AAPL', 'TSLA')
      #checkdf = b.appeartimes("2010-01-01", 25, 5,"2010-06-28", 'TSLA')
      #print(checkdf)
 
