@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 import helper
 from get_all_tickers import get_tickers as gt
-#import talib
+import talib
 # pip install talib
 from matplotlib.pylab import date2num
 
