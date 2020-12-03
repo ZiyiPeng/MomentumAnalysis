@@ -28,11 +28,12 @@ class UnitTest(unittest.TestCase):
         start_date = "2010-01-01"
         ranking_period = 25
         n= 5
-        listeddate ="2010-06-28" 
-        s ='TSLA'
+        checkdate ="2010-06-28" 
+        s = 'AAPL'
+        k ='TSLA'
         tickers = list(gt.get_biggest_n_tickers(40))
         b = Analyzer(tickers, start_date)
-        self.assertEqual(b.appeartimes( start_date, ranking_period, n, listeddate, s, volume_filter=False), (0,0))
+        self.assertEqual(b.appeartimes( start_date, ranking_period, n, checkdate, s,k, volume_filter=False), (0,0))
 
 if __name__ == '__main__':
     unittest.main()
