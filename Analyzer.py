@@ -297,20 +297,17 @@ class Analyzer:
         for date, row in data.iterrows():
             openp, highp, lowp, closep = row[:4]
             ohlc.append([date2num(date), openp, highp, lowp, closep])
-     
         # Plot candlestick chart
         ax_candle.plot(data.index, data["ma10"], label="MA10")
         ax_candle.plot(data.index, data["ma30"], label="MA30")
         # candlestick_ohlc(ax_candle, ohlc, colorup="g", colordown="r", width=0.8)
         # ax_candle.legend()
         ax_candle.plot(data.index, data['Adj Close'], label = 'Price')
-        
         # Plot MACD
         ax_macd.plot(data.index, data["macd"], label="macd")
         ax_macd.bar(data.index, data["macd_hist"] * 3, label="hist")
         ax_macd.plot(data.index, data["macd_signal"], label="signal")
         ax_macd.legend()
-        
         # Plot RSI
         # Above 70% = overbought, below 30% = oversold
         ax_rsi.set_ylabel("(%)")
@@ -318,15 +315,43 @@ class Analyzer:
         ax_rsi.plot(data.index, [30] * len(data.index), label="oversold")
         ax_rsi.plot(data.index, data["rsi"], label="rsi")
         ax_rsi.legend()
-        
         # Show volume in millions
         ax_vol.bar(data.index, data["Volume"] / 1000000)
         ax_vol.set_ylabel("(Million)")
        
         # Save the chart as PNG
         fig.savefig("charts/" + ticker + ".png", bbox_inches="tight")
+        plt.show()  
+    
+    '''  need to correct
+    def appeartimes(self, start_date, ranking_period, n, listeddate, s, volume_filter=False):
+
+        current_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date =  datetime.strptime(listeddate, '%Y-%m-%d')
         
-        plt.show()        
+        ranking_end = self.stocks[s].df.index.get_loc(listeddate)
+        # sta_date = self.stocks[s].df.index.get_loc(start_date )
+        # ranking_start = ranking_end - ranking_period
+        
+        idx = self.stocks[s].df.index.get_loc(current_date) + ranking_period
+        ranking_start = self.stocks[s].df.index[idx]
+        i = 0
+        j = 0
+        while idx <  ranking_end:   
+            winners = self.winners(ranking_start.strftime("%Y-%m-%d"), ranking_period, n, False)
+            losers = self.losers(ranking_start.strftime("%Y-%m-%d"), ranking_period, n, False)
+          
+            if s in winners:
+               i += 1
+        
+            if s in winners:
+               j += 1
+ 
+            idx = self.stocks[s].df.index.get_loc(ranking_start) + ranking_period
+            ranking_start = self.stocks[s].df.index[idx]
+            
+        return i,j
+        '''        
 if __name__ == "__main__" : 
      #tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'TSLA']
      tickers = gt.get_biggest_n_tickers(40)
