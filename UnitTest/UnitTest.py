@@ -15,7 +15,8 @@ class UnitTest(unittest.TestCase):
         date = '2009-05-28'
         tickers = list(gt.get_biggest_n_tickers(40))
         b = Analyzer(tickers, start)
-        self.assertRaises(KeyError, lambda: b.winners(date, 25, 5))
+        #self.assertRaises(KeyError, lambda: b.winners(date, 25, 5))
+        self.assertEqual(b.winners(date, 25, 5), [])
         
     def test_date_before_oneperiod(self):
         start = "2010-01-01"
