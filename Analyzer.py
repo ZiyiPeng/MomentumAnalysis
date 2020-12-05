@@ -154,28 +154,23 @@ class Analyzer:
         :return test_volumes: list of volumes in the holding period
         """    
         
+        test_returns = []
+        test_momentums = []
+        test_volumes = []
         for s in test_stocks:
             ranking_end = self.stocks[s].df.index.get_loc(date)
             ranking_start = ranking_end - ranking_period
             hold_start = ranking_end
             hold_end = hold_start + ranking_period
-            break
-        
-        assert ranking_end >= ranking_period, "Unable to find ranking period"
-        
-        try:
-            self.stocks[s].df['daily_return'].iloc[hold_start:hold_end]
-        except AssertionError:
-            print("Unable to find holding period")
-        
-        test_returns = []
-        test_momentums = []
-        test_volumes = []
-        for s in test_stocks:
-            test_returns += [np.mean(self.stocks[s].df['daily_return'].iloc[hold_start:hold_end].dropna())]
-            (_, momentums) = self.momentum(s, ranking_start, ranking_end)
-            test_momentums += [momentums]
-            test_volumes += [np.mean(self.stocks[s].df['Volume'].iloc[ranking_start:ranking_end].dropna())]
+            try:
+                test_returns += [np.mean(self.stocks[s].df['daily_return'].iloc[hold_start:hold_end].dropna())]
+                (_, momentums) = self.momentum(s, ranking_start, ranking_end)
+                test_momentums += [momentums]
+                test_volumes += [np.mean(self.stocks[s].df['Volume'].iloc[ranking_start:ranking_end].dropna())]
+            except:
+                pass
+        test_returns = np.array(test_returns)
+        test_returns = test_returns[np.logical_not(np.isnan(test_returns))]
         return test_returns, test_momentums, test_volumes
     
     #test if selected stocks have higher/lower returns than SPY
@@ -261,7 +256,97 @@ class Analyzer:
         plt.xlabel("Volume")
         plt.ylabel("Return")
         plt.show()
-        '''
+    '''
+    
+    
+    def two_sample_1sided_test(self, returns1, returns2):
+        """
+        :param returns1: (float list) stock returns of group1
+        :param returns2: (float list) stock returns of group2
+        :return: p_value of two sample 1 sided t test
+        Null hypothesis: Mean of group 1 is greater of equal to Mean of group 2
+        Alt hypothesis: Mean of group 1 is less than mean of group 2
+        """ 
+        (_, p_value) = stats.ttest_ind(returns1, returns2)
+        p_value = p_value/2
+        return p_value
+    
+    def plot_p_value_vs_holding(tickers, start_date, date, ranking_period, n):
+        """
+        :param tickers: (str list) list of stocks
+        :param start_date: (str) date to start collecting data for the stocks
+        :param date: (str)
+        :param ranking_period: (int)
+        :param n: (int) number of stocks
+        :plot p_value vs length of holding_period for winners vs losers
+        :plot p_value vs length of holding_period for winners vs losers with volume filter
+        :plot p_value vs length of holding_period for winners-losers returns with and without volume filter
+        Note that in this plot, if a stock is not valid it is removed from the comparison
+        """ 
+        A = Analyzer(tickers, start_date)
+        p_value1 = []
+        p_value2 = []
+        p_value3 = []
+        
+        for i in range(1, ranking_period):
+            groupW = A.winners(date, i, n)
+            groupL = A.losers(date, i, n)
+            (returnsW, _, _) = A.calc_returns_momentums_volumes(date, i, groupW)
+            (returnsL, _, _) = A.calc_returns_momentums_volumes(date, i, groupL)
+            
+            p = A.two_sample_1sided_test(returnsW, returnsL)
+            p_value1 += [p]   
+            
+            groupWV = A.winners(date, i, n, True)
+            groupLV = A.losers(date, i, n, True)
+            (returnsWV, _, _) = A.calc_returns_momentums_volumes(date, i, groupWV)
+            (returnsLV, _, _) = A.calc_returns_momentums_volumes(date, i, groupLV)
+            #print(returnsWV, returnsLV)
+            pV = A.two_sample_1sided_test(returnsWV, returnsLV)
+            p_value2 += [pV] 
+            
+            returns = [w-l for (w, l) in zip(returnsW, returnsL)]
+            returnsV = [w-l for (w, l) in zip(returnsWV, returnsLV)]
+            p_value = A.two_sample_1sided_test(returnsV, returns)
+            p_value3 += [p_value]
+        
+        #print(A.two_sample_1sided_test(p_value1, p_value2))
+        x = range(1, ranking_period)
+        plt.plot(x, p_value1)
+        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
+        plt.title("p_value vs length of holding_period for winners vs losers")
+        plt.legend()
+        plt.xlabel("Holding days")
+        plt.ylabel("p value")
+        plt.show()    
+        
+        plt.plot(x, p_value2)
+        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
+        plt.title("p_value vs length of holding_period for winners vs losers with volume filter")
+        plt.legend()
+        plt.xlabel("Holding days")
+        plt.ylabel("p value")
+        plt.show()  
+        
+        plt.plot(x, p_value3)
+        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
+        plt.title("p_value vs length of holding_period for winners-losers returns with and without volume filter")
+        plt.legend()
+        plt.xlabel("Holding days")
+        plt.ylabel("p value")
+        plt.show()  
+        
+
+        
+         
+
+            
+        
+        
+        
+        
+        
+        
     def plot_chart(self, data, n, ticker):
         
         ''' plot the information for one stock (inclding: Moving Average, MACD, RSI, Volume)
@@ -360,6 +445,10 @@ if __name__ == "__main__" :
      #tickers = ['AAPL', 'MSFT', 'AMZN', 'FB', 'GOOGL', 'GOOG', 'BRK-B', 'JNJ', 'JPM', 'BILI', 'TSLA']
      tickers = gt.get_biggest_n_tickers(40)
      #print(tickers)
+     
+     """
+     
+     
      b = Analyzer(tickers, "2010-01-04")
      
      w1 = b.winners("2010-08-09", 25, 5)
@@ -386,6 +475,15 @@ if __name__ == "__main__" :
      
      #test holding period returns
      #print(b.t_test("2020-09-01", 20, w1))
+     
+     
+     """
+     
+     
+     #Analyzer.plot_p_value_vs_holding(tickers, "2010-01-04", "2010-06-25", 20, 5)
+     Analyzer.plot_p_value_vs_holding(tickers, "2010-01-04", "2015-06-25", 255, 5)
+     
+     """
      df =  helper.get_historical_data('AAPL', '2010-01-01','2010-01-01')  
      b.plot_chart(df, 180, 'AAPL')
 
@@ -393,3 +491,4 @@ if __name__ == "__main__" :
      
      b.plot_momentum(['AAPL'], "2015-01-02", 255)
 
+     """
