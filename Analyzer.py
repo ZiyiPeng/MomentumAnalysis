@@ -335,48 +335,30 @@ class Analyzer:
         plt.xlabel("Holding days")
         plt.ylabel("p value")
         plt.show()  
-        
-
-        
-         
-
-            
-        
-        
-        
-        
-        
-        
-    def plot_chart(self, data, n, ticker):
-        
+                                                            
+    def plot_chart(self, data, n, ticker):     
         ''' plot the information for one stock (inclding: Moving Average, MACD, RSI, Volume)
             param data: datafram for the stock
             param n: n index before the end date
             param ticker: single stock ticker
-        '''
-    
-        data["macd"], data["macd_signal"], data["macd_hist"] = talib.MACD(data['Adj Close'])
-        
+        '''  
+        data["macd"], data["macd_signal"], data["macd_hist"] = talib.MACD(data['Adj Close'])        
         # Get MA10 and MA30
         data["ma10"] = talib.MA(data["Adj Close"], timeperiod=10)
-        data["ma30"] = talib.MA(data["Adj Close"], timeperiod=30)
-        
+        data["ma30"] = talib.MA(data["Adj Close"], timeperiod=30)        
         # Get RSI
         data["rsi"] = talib.RSI(data["Adj Close"])
         # Filter number of observations to plot
-        data = data.iloc[-n:]
-        
+        data = data.iloc[-n:]        
         # Create figure and set axes for subplots
         fig = plt.figure()
         fig.set_size_inches((20, 16))
         ax_candle = fig.add_axes((0, 0.72, 1, 0.32))
         ax_macd = fig.add_axes((0, 0.48, 1, 0.2), sharex=ax_candle)
         ax_rsi = fig.add_axes((0, 0.24, 1, 0.2), sharex=ax_candle)
-        ax_vol = fig.add_axes((0, 0, 1, 0.2), sharex=ax_candle)
-        
+        ax_vol = fig.add_axes((0, 0, 1, 0.2), sharex=ax_candle)      
         # Format x-axis ticks as dates
-        ax_candle.xaxis_date()
-        
+        ax_candle.xaxis_date()       
         # Get nested list of date, open, high, low and close prices
         ohlc = []
         for date, row in data.iterrows():
@@ -402,8 +384,7 @@ class Analyzer:
         ax_rsi.legend()
         # Show volume in millions
         ax_vol.bar(data.index, data["Volume"] / 1000000)
-        ax_vol.set_ylabel("(Million)")
-       
+        ax_vol.set_ylabel("(Million)")       
         # Save the chart as PNG
         fig.savefig("charts/" + ticker + ".png", bbox_inches="tight")
         plt.show()  
@@ -419,25 +400,20 @@ class Analyzer:
            param s: stock s to get data
            param k: check stock    
         '''
-        ranking_end = self.stocks[s].df.index.get_loc(checkdate)
-        
+        ranking_end = self.stocks[s].df.index.get_loc(checkdate)        
         idx = self.stocks[s].df.index.get_loc(start_date) + ranking_period
         ranking_start = self.stocks[s].df.index[idx]
         i = 0
         j = 0
         while idx <  ranking_end:   
             winners = self.winners(ranking_start, ranking_period, n, False)
-            losers = self.losers(ranking_start, ranking_period, n, False)
-          
+            losers = self.losers(ranking_start, ranking_period, n, False)          
             if k in winners:
-               i += 1
-        
+               i += 1       
             if k in losers:
-               j += 1
- 
+               j += 1 
             idx = self.stocks[s].df.index.get_loc(ranking_start) + ranking_period
-            ranking_start = self.stocks[s].df.index[idx]
-            
+            ranking_start = self.stocks[s].df.index[idx]  
         return i,j
            
 if __name__ == "__main__" : 
