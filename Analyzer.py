@@ -417,8 +417,7 @@ class Analyzer:
            param n: number of stock to pick in each period
            param checkdate: the date of stock k was listed
            param s: stock s to get data
-           param k: check stock 
-        
+           param k: check stock    
         '''
         ranking_end = self.stocks[s].df.index.get_loc(checkdate)
         
