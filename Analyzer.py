@@ -164,7 +164,9 @@ class Analyzer:
                 hold_start = ranking_end
                 hold_end = hold_start + ranking_period
                 if hold_start < self.stocks[s].df.size and hold_end < self.stocks[s].df.size:
-                    test_returns += [np.mean(self.stocks[s].df['daily_return'].iloc[hold_start:hold_end].dropna())]
+                    returns = (self.stocks[s].df['daily_return'].iloc[hold_start:hold_end]).dropna()
+                    new_returns = returns + 1
+                    test_returns += [new_returns.cumprod()]
                 if ranking_start < self.stocks[s].df.size and ranking_end < self.stocks[s].df.size: 
                     (_, momentums) = self.momentum(s, ranking_start, ranking_end)
                     test_momentums += [momentums]
@@ -172,6 +174,8 @@ class Analyzer:
 
         test_returns = np.array(test_returns)
         test_returns = test_returns[np.logical_not(np.isnan(test_returns))]
+        test_momentums = np.array(test_momentums)
+        test_momentums = test_momentums[np.logical_not(np.isnan(test_momentums))]
         return test_returns, test_momentums, test_volumes
     
     #test if selected stocks have higher/lower returns than SPY
@@ -271,7 +275,7 @@ class Analyzer:
         Null hypothesis: Mean of group 1 is greater of equal to Mean of group 2
         Alt hypothesis: Mean of group 1 is less than mean of group 2
         """ 
-        (_, p_value) = stats.ttest_ind(returns1, returns2)
+        (_, p_value) = stats.ttest_ind(returns1, returns2, equal_var = False)
         p_value = p_value/2
         return p_value
     
