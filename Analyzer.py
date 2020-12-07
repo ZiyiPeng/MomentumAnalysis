@@ -163,9 +163,9 @@ class Analyzer:
                 ranking_start = ranking_end - ranking_period
                 hold_start = ranking_end
                 hold_end = hold_start + ranking_period
-                if hold_start in self.stocks[s].df.index and hold_end in self.stocks[s].df.index:
+                if hold_start < self.stocks[s].df.size and hold_end < self.stocks[s].df.size:
                     test_returns += [np.mean(self.stocks[s].df['daily_return'].iloc[hold_start:hold_end].dropna())]
-                if ranking_start in self.stocks[s].df.index and ranking_end in self.stocks[s].df.index: 
+                if ranking_start < self.stocks[s].df.size and ranking_end < self.stocks[s].df.size: 
                     (_, momentums) = self.momentum(s, ranking_start, ranking_end)
                     test_momentums += [momentums]
                     test_volumes += [np.mean(self.stocks[s].df['Volume'].iloc[ranking_start:ranking_end].dropna())]
@@ -346,75 +346,92 @@ class Analyzer:
             pWmV = A.two_sample_1sided_test(mWV, mrestWV)
             p_mvw += [pWmV]   
             
-            pLmV = A.two_sample_1sided_test(mrestLVm, mLV)
+            pLmV = A.two_sample_1sided_test(mrestLV, mLV)
             p_mvl += [pLmV]    
             
         #print(p_ml)
         #print(A.two_sample_1sided_test(p_value1, p_value2))
+        plt.figure(figsize= (20, 10))
         x = range(1, ranking_period)
+        plt.subplot(2, 2, 1)
         plt.plot(x, p_rw)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for winners vs rest of stocks returns")
+        plt.title("p_value vs length of holding_period for \n winners vs rest of stocks returns")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
-        plt.show()  
         
-
+        plt.subplot(2, 2, 2)
         plt.plot(x, p_rl)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for losers vs rest of stocks returns")
+        plt.title("p_value vs length of holding_period for \n losers vs rest of stocks returns")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
-        plt.show()
         
+        plt.subplot(2, 2, 3)
         plt.plot(x, p_rvw)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for winners vs rest of stocks returns with volume filter")
+        plt.title("p_value vs length of holding_period for \n winners vs rest of stocks returns \n with volume filter")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
-        plt.show()  
         
+        plt.subplot(2, 2, 4) 
         plt.plot(x, p_rvl)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for losers vs rest of stocks returns with volume filter")
+        plt.title("p_value vs length of holding_period for \n losers vs rest of stocks returns \n with volume filter")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
+
+        plt.subplots_adjust(left=0.125,
+                    bottom=0.1, 
+                    right=0.9, 
+                    top=0.9, 
+                    wspace=0.2, 
+                    hspace=0.5)
         plt.show()
 
+        plt.figure(figsize= (20, 10))
+        plt.subplot(2, 2, 1)
         plt.plot(x, p_mw)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for winners vs rest of stocks momentums")
+        plt.title("p_value vs length of holding_period for \n winners vs rest of stocks momentums")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
-        plt.show()  
-        
+
+        plt.subplot(2, 2, 2)
         plt.plot(x, p_ml)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for losers vs rest of stocks momentums")
+        plt.title("p_value vs length of holding_period for \n losers vs rest of stocks momentums")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
-        plt.show()
         
+        plt.subplot(2, 2, 3)
         plt.plot(x, p_mvw)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for winners vs rest of stocks momentums with volume filter")
+        plt.title("p_value vs length of holding_period for \n winners vs rest of stocks momentums \n with volume filter")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
-        plt.show()  
-        
+      
+        plt.subplot(2, 2, 4)
         plt.plot(x, p_mvl)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for losers vs rest of stocks momentums with volume filter")
+        plt.title("p_value vs length of holding_period for \n losers vs rest of stocks momentums \n with volume filter")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
+        plt.subplots_adjust(left=0.125,
+                    bottom=0.1, 
+                    right=0.9, 
+                    top=0.9, 
+                    wspace=0.2, 
+                    hspace=0.5)
+                
         plt.show()
 
                                                  
@@ -538,7 +555,7 @@ if __name__ == "__main__" :
      
      
      #Analyzer.plot_p_value_vs_holding(tickers, "2010-01-04", "2010-06-25", 20, 5)
-     Analyzer.plot_p_value_vs_holding(tickers, "2010-01-04", "2015-06-25", 255, 5)
+     Analyzer.plot_p_value_vs_holding(tickers, "2005-01-04", "2007-07-27", 255, 5)
      
      """
      df =  helper.get_historical_data('AAPL', '2010-01-01','2010-01-01')  
