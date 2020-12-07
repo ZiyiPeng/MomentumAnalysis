@@ -158,17 +158,18 @@ class Analyzer:
         test_momentums = []
         test_volumes = []
         for s in test_stocks:
-            ranking_end = self.stocks[s].df.index.get_loc(date)
-            ranking_start = ranking_end - ranking_period
-            hold_start = ranking_end
-            hold_end = hold_start + ranking_period
-            try:
-                test_returns += [np.mean(self.stocks[s].df['daily_return'].iloc[hold_start:hold_end].dropna())]
-                (_, momentums) = self.momentum(s, ranking_start, ranking_end)
-                test_momentums += [momentums]
-                test_volumes += [np.mean(self.stocks[s].df['Volume'].iloc[ranking_start:ranking_end].dropna())]
-            except:
-                pass
+            if date in self.stocks[s].df.index:
+                ranking_end = self.stocks[s].df.index.get_loc(date)
+                ranking_start = ranking_end - ranking_period
+                hold_start = ranking_end
+                hold_end = hold_start + ranking_period
+                if hold_start in self.stocks[s].df.index and hold_end in self.stocks[s].df.index:
+                    test_returns += [np.mean(self.stocks[s].df['daily_return'].iloc[hold_start:hold_end].dropna())]
+                if ranking_start in self.stocks[s].df.index and ranking_end in self.stocks[s].df.index: 
+                    (_, momentums) = self.momentum(s, ranking_start, ranking_end)
+                    test_momentums += [momentums]
+                    test_volumes += [np.mean(self.stocks[s].df['Volume'].iloc[ranking_start:ranking_end].dropna())]
+
         test_returns = np.array(test_returns)
         test_returns = test_returns[np.logical_not(np.isnan(test_returns))]
         return test_returns, test_momentums, test_volumes
@@ -178,6 +179,8 @@ class Analyzer:
     #assume that momentums have already been calculted
     #Null: spy mean and the test_stocks mean are the same
     #Alt: the means are different (p value < 0.05)
+    
+    '''
     def t_test(self, date, ranking_period, test_stocks, all_spy_returns):
         """
         :param date: (str)
@@ -220,7 +223,8 @@ class Analyzer:
         plt.xlabel("Holding days")
         plt.ylabel("p_value")
         plt.show()
-        
+    '''
+    '''
     def plot_momentum(self, test_stocks, date, ranking_period):
         returns = []
         momentums = []
@@ -245,7 +249,7 @@ class Analyzer:
         ax2.scatter3D(length_ranking_period, volumes, returns)
         ax2.set_title("Volumes vs Returns for different ranking_periods")
         plt.show()
-        '''
+
         plt.plot(momentums, returns, 'o')
         plt.title("Momentums vs Returns for different ranking_periods")
         plt.xlabel("Momentum")
@@ -284,58 +288,136 @@ class Analyzer:
         Note that in this plot, if a stock is not valid it is removed from the comparison
         """ 
         A = Analyzer(tickers, start_date)
-        p_value1 = []
-        p_value2 = []
-        p_value3 = []
+        p_rw= []
+        p_mw = []
+        
+        p_rvw = []
+        p_mvw = []
+        
+        p_rl= []
+        p_ml = []
+        
+        p_rvl = []
+        p_mvl = []
+        
         
         for i in range(1, ranking_period):
             groupW = A.winners(date, i, n)
             groupL = A.losers(date, i, n)
-            (returnsW, _, _) = A.calc_returns_momentums_volumes(date, i, groupW)
-            (returnsL, _, _) = A.calc_returns_momentums_volumes(date, i, groupL)
+            restW = set(tickers) - set(groupW)
+            restL = set(tickers) - set(groupL)
             
-            p = A.two_sample_1sided_test(returnsW, returnsL)
-            p_value1 += [p]   
+            (returnsW, mW, _) = A.calc_returns_momentums_volumes(date, i, groupW)
+            (returnsL, mL, _) = A.calc_returns_momentums_volumes(date, i, groupL)
+            
+            (rrestW, mrestW, _) = A.calc_returns_momentums_volumes(date, i, restW)
+            (rrestL, mrestL, _) = A.calc_returns_momentums_volumes(date, i, restL)
+            
+            pW = A.two_sample_1sided_test(returnsW, rrestW)
+            p_rw += [pW]   
+
+            pL = A.two_sample_1sided_test(returnsL, rrestL)
+            p_rl += [pL]  
+            
+            pWm = A.two_sample_1sided_test(mW, mrestW)
+            p_mw += [pWm]   
+            
+            pLm = A.two_sample_1sided_test(mrestL, mL)
+            p_ml += [pLm]    
+            
             
             groupWV = A.winners(date, i, n, True)
             groupLV = A.losers(date, i, n, True)
-            (returnsWV, _, _) = A.calc_returns_momentums_volumes(date, i, groupWV)
-            (returnsLV, _, _) = A.calc_returns_momentums_volumes(date, i, groupLV)
-            #print(returnsWV, returnsLV)
-            pV = A.two_sample_1sided_test(returnsWV, returnsLV)
-            p_value2 += [pV] 
+            restWV = set(tickers) - set(groupWV)
+            restLV = set(tickers) - set(groupLV)
             
-            returns = [w-l for (w, l) in zip(returnsW, returnsL)]
-            returnsV = [w-l for (w, l) in zip(returnsWV, returnsLV)]
-            p_value = A.two_sample_1sided_test(returnsV, returns)
-            p_value3 += [p_value]
-        
+            (returnsWV, mWV, _) = A.calc_returns_momentums_volumes(date, i, groupWV)
+            (returnsLV, mLV, _) = A.calc_returns_momentums_volumes(date, i, groupLV)
+            
+            (rrestWV, mrestWV, _) = A.calc_returns_momentums_volumes(date, i, restWV)
+            (rrestLV, mrestLV, _) = A.calc_returns_momentums_volumes(date, i, restLV)
+            
+            pWV = A.two_sample_1sided_test(returnsWV, rrestWV)
+            p_rvw += [pWV]   
+            
+            pLV = A.two_sample_1sided_test(returnsLV, rrestLV)
+            p_rvl += [pLV]  
+            
+            pWmV = A.two_sample_1sided_test(mWV, mrestWV)
+            p_mvw += [pWmV]   
+            
+            pLmV = A.two_sample_1sided_test(mrestLVm, mLV)
+            p_mvl += [pLmV]    
+            
+        #print(p_ml)
         #print(A.two_sample_1sided_test(p_value1, p_value2))
         x = range(1, ranking_period)
-        plt.plot(x, p_value1)
+        plt.plot(x, p_rw)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for winners vs losers")
-        plt.legend()
-        plt.xlabel("Holding days")
-        plt.ylabel("p value")
-        plt.show()    
-        
-        plt.plot(x, p_value2)
-        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for winners vs losers with volume filter")
+        plt.title("p_value vs length of holding_period for winners vs rest of stocks returns")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
         plt.show()  
         
-        plt.plot(x, p_value3)
+
+        plt.plot(x, p_rl)
         plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
-        plt.title("p_value vs length of holding_period for winners-losers returns with and without volume filter")
+        plt.title("p_value vs length of holding_period for losers vs rest of stocks returns")
+        plt.legend()
+        plt.xlabel("Holding days")
+        plt.ylabel("p value")
+        plt.show()
+        
+        plt.plot(x, p_rvw)
+        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
+        plt.title("p_value vs length of holding_period for winners vs rest of stocks returns with volume filter")
         plt.legend()
         plt.xlabel("Holding days")
         plt.ylabel("p value")
         plt.show()  
-                                                            
+        
+        plt.plot(x, p_rvl)
+        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
+        plt.title("p_value vs length of holding_period for losers vs rest of stocks returns with volume filter")
+        plt.legend()
+        plt.xlabel("Holding days")
+        plt.ylabel("p value")
+        plt.show()
+
+        plt.plot(x, p_mw)
+        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
+        plt.title("p_value vs length of holding_period for winners vs rest of stocks momentums")
+        plt.legend()
+        plt.xlabel("Holding days")
+        plt.ylabel("p value")
+        plt.show()  
+        
+        plt.plot(x, p_ml)
+        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
+        plt.title("p_value vs length of holding_period for losers vs rest of stocks momentums")
+        plt.legend()
+        plt.xlabel("Holding days")
+        plt.ylabel("p value")
+        plt.show()
+        
+        plt.plot(x, p_mvw)
+        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
+        plt.title("p_value vs length of holding_period for winners vs rest of stocks momentums with volume filter")
+        plt.legend()
+        plt.xlabel("Holding days")
+        plt.ylabel("p value")
+        plt.show()  
+        
+        plt.plot(x, p_mvl)
+        plt.hlines(0.05, 0, ranking_period, color = 'red', label = 'p-value = 0.05')
+        plt.title("p_value vs length of holding_period for losers vs rest of stocks momentums with volume filter")
+        plt.legend()
+        plt.xlabel("Holding days")
+        plt.ylabel("p value")
+        plt.show()
+
+                                                 
     def plot_chart(self, data, n, ticker):     
         ''' plot the information for one stock (inclding: Moving Average, MACD, RSI, Volume)
             param data: datafram for the stock
