@@ -26,7 +26,7 @@ class UnitTest(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.ts = TradingStrategy(cls.analyzer, 0, 10)
-        cls.mts = SimpleMomentumStrategy(cls.analyzer_momentum, 10000, 10)
+        cls.mts = SimpleMomentumStrategy(cls.analyzer_momentum, 10000, 10, 5)
 
     @classmethod
     def tearDown(cls):
@@ -42,6 +42,7 @@ class UnitTest(unittest.TestCase):
     def test_inital_value(self):
         """Strategy's total value (exclude cash) should be zero if no stock is traded"""
         self.assertEqual(self.ts.portfolio_value('2010-01-04'), 0)
+
 
     def test_trading_record(self):
         """trading_record() returns correct records and change in purchasing capacity"""

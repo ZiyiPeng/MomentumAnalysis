@@ -4,8 +4,8 @@ from BackTest.TradingRecord import TradingRecord
 from BackTest.TradingStrategy import TradingStrategy
 
 class MomentumVolumeStrategy(TradingStrategy):
-    def __init__(self, analyzer, init_value, period):
-        super().__init__(analyzer, init_value, period)
+    def __init__(self, analyzer, init_value, period, n):
+        super().__init__(analyzer, init_value, period, n)
 
     # override apply method in parent class, fill out trading records
     # self.records = {ticker: Records[]}
@@ -19,8 +19,8 @@ class MomentumVolumeStrategy(TradingStrategy):
             end_period_idx = self.df.index.get_loc(current_date) + self.period
             if end_period_idx >= self.df.shape[0]:
                 break
-            w = self.analyzer.winners(current_date.strftime("%Y-%m-%d"), period, 5, True)
-            l = self.analyzer.losers(current_date.strftime("%Y-%m-%d"), period, 5, True)
+            w = self.analyzer.winners(current_date.strftime("%Y-%m-%d"), period, self.n, True)
+            l = self.analyzer.losers(current_date.strftime("%Y-%m-%d"), period, self.n, True)
             winners = set(w) - set(l)
             losers = set(l) - set(w)
             capacity_delta = 0

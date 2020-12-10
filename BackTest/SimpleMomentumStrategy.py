@@ -4,8 +4,8 @@ from BackTest.TradingRecord import TradingRecord
 from BackTest.TradingStrategy import TradingStrategy
 
 class SimpleMomentumStrategy(TradingStrategy):
-    def __init__(self, analyzer, init_value, period):
-        super().__init__(analyzer, init_value, period)
+    def __init__(self, analyzer, init_value, period, n):
+        super().__init__(analyzer, init_value, period,n)
 
     # override apply method in parent class, fill out trading records
     # self.records = {ticker: Records[]}
@@ -20,8 +20,8 @@ class SimpleMomentumStrategy(TradingStrategy):
             if end_period_idx >= self.df.shape[0]:
                 self.records['cash'].append(TradingRecord('cash', capacity, current_date, 1))
                 break
-            winners = self.analyzer.winners(current_date.strftime("%Y-%m-%d"), period, 5, False)
-            losers = self.analyzer.losers(current_date.strftime("%Y-%m-%d"), period, 5, False)
+            winners = self.analyzer.winners(current_date.strftime("%Y-%m-%d"), period, self.n, False)
+            losers = self.analyzer.losers(current_date.strftime("%Y-%m-%d"), period, self.n, False)
             capacity_delta = 0
             for s in winners:
                 record_cap_delta = self.trading_record(s, current_date, 2*capacity/float(len(winners)), True)
